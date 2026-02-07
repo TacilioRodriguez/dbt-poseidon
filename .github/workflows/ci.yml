@@ -11,23 +11,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout do código
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Setup Python
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      # 3️⃣ Instalar SQLFluff
       - name: Install SQLFluff
         run: |
           python -m pip install --upgrade pip
           pip install sqlfluff
 
-      # 4️⃣ Verificar se existem arquivos SQL
       - name: Check for SQL models
         id: check_sql
         run: |
@@ -41,7 +37,6 @@ jobs:
             echo "has_sql=true" >> $GITHUB_OUTPUT
           fi
 
-      # 5️⃣ SQLFluff Lint (somente se existir SQL)
       - name: SQLFluff lint (Databricks SQL)
         if: steps.check_sql.outputs.has_sql == 'true'
         run: |
@@ -60,7 +55,6 @@ jobs:
               exit 1
             )
 
-      # 6️⃣ Mensagem clara quando não há SQL
       - name: Skip SQLFluff (no SQL files)
         if: steps.check_sql.outputs.has_sql == 'false'
         run: |
