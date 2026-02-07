@@ -1,4 +1,4 @@
-name: CI
+name: CI-dbt
 
 on:
   pull_request:
@@ -7,7 +7,6 @@ on:
 
 jobs:
   sql-lint:
-    name: dbt
     runs-on: ubuntu-latest
 
     steps:
