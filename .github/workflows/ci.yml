@@ -1,0 +1,32 @@
+name: CI - dbt
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  dbt-ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install dbt-core dbt-databricks
+          pip install sqlfluff sqlfluff-templater-dbt
+
+      - name: SQLFluff lint
+        run: |
+          sqlfluff lint models
+
+      - name: dbt debug
+        run: |
+          dbt debug --profiles-dir ~/.dbt
