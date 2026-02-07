@@ -7,7 +7,7 @@ on:
 
 jobs:
   sql-lint:
-    name: CI
+    name: dbt
     runs-on: ubuntu-latest
 
     steps:
