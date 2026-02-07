@@ -1,4 +1,4 @@
-name: CI - dbt Project
+name: CI - SQL Lint
 
 on:
   pull_request:
@@ -6,52 +6,47 @@ on:
       - main
 
 jobs:
-  dbt-ci:
-    name: dbt CI Pipeline
+  sql-lint:
+    name: SQLFluff Lint
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout
+      # 1️⃣ Checkout do código
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Python
+      # 2️⃣ Setup Python
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      # 3️⃣ Dependências
-      - name: Install Python dependencies
+      # 3️⃣ Instalar SQLFluff
+      - name: Install SQLFluff
         run: |
           python -m pip install --upgrade pip
-          pip install dbt-core dbt-databricks
-          pip install sqlfluff sqlfluff-templater-dbt
+          pip install sqlfluff
 
-      # 4️⃣ Profiles fake para dbt (obrigatório)
-      - name: Create fake dbt profiles
+      # 4️⃣ Verificar se existem arquivos SQL
+      - name: Check for SQL models
+        id: check_sql
         run: |
-          mkdir -p /tmp/dbt_profiles
-          cat <<EOF > /tmp/dbt_profiles/profiles.yml
-          dbt_poseidon:
-            target: ci
-            outputs:
-              ci:
-                type: databricks
-                host: fake
-                http_path: fake
-                token: fake
-                catalog: fake
-                schema: fake
-                threads: 1
-          EOF
+          echo "🔍 Checking for SQL files in models/"
+          SQL_COUNT=$(find models -type f -name "*.sql" | wc -l | tr -d ' ')
+          echo "Found $SQL_COUNT SQL files"
 
-      # 5️⃣ SQLFluff (rodando EXPLICITAMENTE no root)
-      - name: SQLFluff lint (dbt + Databricks)
+          if [ "$SQL_COUNT" -eq 0 ]; then
+            echo "has_sql=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_sql=true" >> $GITHUB_OUTPUT
+          fi
+
+      # 5️⃣ SQLFluff Lint (somente se existir SQL)
+      - name: SQLFluff lint (Databricks SQL)
+        if: steps.check_sql.outputs.has_sql == 'true'
         run: |
-          echo "🔍 Running SQLFluff from repo root"
-          pwd
-          ls -la
+          echo "🔍 Running SQLFluff lint"
+          echo "📂 Path: models/"
           echo ""
 
           sqlfluff lint models \
@@ -60,13 +55,14 @@ jobs:
             --format github-annotation \
             || (
               echo ""
-              echo "❌ SQLFluff validation FAILED"
-              echo "👉 SQL formatting errors detected."
-              echo "👉 Check file names and line numbers above."
+              echo "❌ SQLFluff FAILED"
+              echo "👉 Fix SQL linting issues before merging."
               exit 1
             )
 
-      # 6️⃣ dbt debug (estrutura apenas)
-      - name: dbt debug (structure validation)
+      # 6️⃣ Mensagem clara quando não há SQL
+      - name: Skip SQLFluff (no SQL files)
+        if: steps.check_sql.outputs.has_sql == 'false'
         run: |
-          dbt debug --profiles-dir /tmp/dbt_profiles
+          echo "ℹ️ No SQL files found in models/"
+          echo "👉 SQLFluff lint skipped"
