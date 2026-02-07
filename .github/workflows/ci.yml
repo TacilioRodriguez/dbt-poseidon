@@ -1,4 +1,3 @@
-name: CI-dbt
 
 on:
   pull_request:
@@ -6,6 +5,8 @@ on:
       - main
 
 jobs:
+  CI:
+    name: dbt
     runs-on: ubuntu-latest
 
     steps:
