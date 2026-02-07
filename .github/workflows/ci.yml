@@ -29,30 +29,39 @@ jobs:
           pip install dbt-core dbt-databricks
           pip install sqlfluff sqlfluff-templater-dbt
 
-      # 4️⃣ SQLFluff Lint (com mensagens claras)
+      # 4️⃣ SQLFluff Lint — com lista explícita de modelos
       - name: SQLFluff lint (dbt + Databricks)
         run: |
           echo "🔍 Running SQLFluff lint"
           echo "📄 Config file: ci/sqlfluff/.sqlfluff"
           echo "🧠 Dialect: Databricks"
+          echo "📂 Models path: models/"
           echo ""
 
           sqlfluff lint models \
             --config ci/sqlfluff/.sqlfluff \
+            --verbose \
+            --format github-annotation \
             || (
               echo ""
               echo "❌ SQLFluff validation FAILED"
-              echo "👉 One or more SQL files do not follow the project standards."
-              echo "👉 Please fix linting issues before merging."
-              echo "👉 Dialect expected: databricks"
+              echo "👉 One or more dbt models failed linting."
+              echo "👉 Check the list of files above in the logs."
+              echo "👉 GitHub annotations highlight the exact lines with issues."
+              echo ""
+              echo "🧠 Common causes:"
+              echo "   - Incorrect indentation"
+              echo "   - Missing aliases"
+              echo "   - Uppercase keywords (policy is lowercase)"
+              echo ""
               exit 1
             )
 
-      # 5️⃣ dbt debug (validação de projeto)
+      # 5️⃣ dbt debug — valida estrutura do projeto
       - name: dbt debug (project validation)
         run: |
           echo "🧪 Running dbt debug"
-          echo "👉 This validates dbt_project.yml and profiles.yml structure"
+          echo "👉 Validating dbt_project.yml and dbt profile structure"
           echo ""
 
           dbt debug \
@@ -61,6 +70,6 @@ jobs:
               echo ""
               echo "❌ dbt debug FAILED"
               echo "👉 Check dbt_project.yml or profiles.yml configuration."
-              echo "👉 This project must be valid before merge."
+              echo "👉 dbt project must be valid before merge."
               exit 1
             )
