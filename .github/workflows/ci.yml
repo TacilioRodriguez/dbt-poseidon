@@ -1,32 +1,66 @@
-name: CI - dbt
+name: CI - dbt Project
 
 on:
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   dbt-ci:
+    name: dbt CI Pipeline
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      # 1️⃣ Checkout do código
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      # 2️⃣ Setup do Python
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
-      - name: Install dependencies
+      # 3️⃣ Instalação das dependências
+      - name: Install Python dependencies
         run: |
-          pip install --upgrade pip
+          echo "🐍 Installing dbt and SQLFluff dependencies"
+          python -m pip install --upgrade pip
           pip install dbt-core dbt-databricks
           pip install sqlfluff sqlfluff-templater-dbt
 
-      - name: SQLFluff lint
+      # 4️⃣ SQLFluff Lint (com mensagens claras)
+      - name: SQLFluff lint (dbt + Databricks)
         run: |
-          sqlfluff lint models
+          echo "🔍 Running SQLFluff lint"
+          echo "📄 Config file: ci/sqlfluff/.sqlfluff"
+          echo "🧠 Dialect: Databricks"
+          echo ""
 
-      - name: dbt debug
+          sqlfluff lint models \
+            --config ci/sqlfluff/.sqlfluff \
+            || (
+              echo ""
+              echo "❌ SQLFluff validation FAILED"
+              echo "👉 One or more SQL files do not follow the project standards."
+              echo "👉 Please fix linting issues before merging."
+              echo "👉 Dialect expected: databricks"
+              exit 1
+            )
+
+      # 5️⃣ dbt debug (validação de projeto)
+      - name: dbt debug (project validation)
         run: |
-          dbt debug --profiles-dir ~/.dbt
+          echo "🧪 Running dbt debug"
+          echo "👉 This validates dbt_project.yml and profiles.yml structure"
+          echo ""
+
+          dbt debug \
+            --profiles-dir ~/.dbt \
+            || (
+              echo ""
+              echo "❌ dbt debug FAILED"
+              echo "👉 Check dbt_project.yml or profiles.yml configuration."
+              echo "👉 This project must be valid before merge."
+              exit 1
+            )
