@@ -11,28 +11,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout do código
+      # 1️⃣ Checkout
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Setup do Python
+      # 2️⃣ Python
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      # 3️⃣ Instalar dependências
+      # 3️⃣ Dependências
       - name: Install Python dependencies
         run: |
-          echo "🐍 Installing dbt and SQLFluff"
           python -m pip install --upgrade pip
           pip install dbt-core dbt-databricks
           pip install sqlfluff sqlfluff-templater-dbt
 
-      # 4️⃣ Criar profiles.yml fake (somente para CI)
+      # 4️⃣ Profiles fake para dbt (obrigatório)
       - name: Create fake dbt profiles
         run: |
-          echo "🧪 Creating fake dbt profiles for CI"
           mkdir -p /tmp/dbt_profiles
           cat <<EOF > /tmp/dbt_profiles/profiles.yml
           dbt_poseidon:
@@ -48,38 +46,27 @@ jobs:
                 threads: 1
           EOF
 
-      # 5️⃣ SQLFluff lint (dbt + Databricks)
+      # 5️⃣ SQLFluff (rodando EXPLICITAMENTE no root)
       - name: SQLFluff lint (dbt + Databricks)
-        working-directory: .
         run: |
-          echo "🔍 Running SQLFluff lint from repo root"
-          echo "📄 Config: ci/sqlfluff/.sqlfluff"
-          echo "📂 Models path: models/"
-          echo "📁 Current dir: $(pwd)"
+          echo "🔍 Running SQLFluff from repo root"
+          pwd
+          ls -la
           echo ""
 
           sqlfluff lint models \
             --config ci/sqlfluff/.sqlfluff \
-            --templater-dbt-project-dir . \
             --verbose \
             --format github-annotation \
             || (
               echo ""
               echo "❌ SQLFluff validation FAILED"
-              echo "👉 One or more dbt models failed linting."
-              echo "👉 See logs above for file names and line numbers."
+              echo "👉 SQL formatting errors detected."
+              echo "👉 Check file names and line numbers above."
               exit 1
             )
 
-      # 6️⃣ dbt debug — valida estrutura (sem conexão real)
+      # 6️⃣ dbt debug (estrutura apenas)
       - name: dbt debug (structure validation)
         run: |
-          echo "🧪 Running dbt debug"
-          dbt debug \
-            --profiles-dir /tmp/dbt_profiles \
-            || (
-              echo ""
-              echo "❌ dbt debug FAILED"
-              echo "👉 Check dbt_project.yml structure."
-              exit 1
-            )
+          dbt debug --profiles-dir /tmp/dbt_profiles
