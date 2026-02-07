@@ -21,20 +21,38 @@ jobs:
         with:
           python-version: "3.11"
 
-      # 3️⃣ Instalação das dependências
+      # 3️⃣ Instala dependências
       - name: Install Python dependencies
         run: |
-          echo "🐍 Installing dbt and SQLFluff dependencies"
+          echo "🐍 Installing dbt and SQLFluff"
           python -m pip install --upgrade pip
           pip install dbt-core dbt-databricks
           pip install sqlfluff sqlfluff-templater-dbt
 
-      # 4️⃣ SQLFluff Lint — com lista explícita de modelos
+      # 4️⃣ Criar profiles.yml FAKE (apenas para CI)
+      - name: Create fake dbt profiles for CI
+        run: |
+          echo "🧪 Creating fake dbt profiles for CI"
+          mkdir -p /tmp/dbt_profiles
+          cat <<EOF > /tmp/dbt_profiles/profiles.yml
+          dbt_poseidon:
+            target: ci
+            outputs:
+              ci:
+                type: databricks
+                host: fake
+                http_path: fake
+                token: fake
+                catalog: fake
+                schema: fake
+                threads: 1
+          EOF
+
+      # 5️⃣ SQLFluff lint — agora lista os modelos corretamente
       - name: SQLFluff lint (dbt + Databricks)
         run: |
           echo "🔍 Running SQLFluff lint"
-          echo "📄 Config file: ci/sqlfluff/.sqlfluff"
-          echo "🧠 Dialect: Databricks"
+          echo "📄 Config: ci/sqlfluff/.sqlfluff"
           echo "📂 Models path: models/"
           echo ""
 
@@ -46,30 +64,20 @@ jobs:
               echo ""
               echo "❌ SQLFluff validation FAILED"
               echo "👉 One or more dbt models failed linting."
-              echo "👉 Check the list of files above in the logs."
-              echo "👉 GitHub annotations highlight the exact lines with issues."
-              echo ""
-              echo "🧠 Common causes:"
-              echo "   - Incorrect indentation"
-              echo "   - Missing aliases"
-              echo "   - Uppercase keywords (policy is lowercase)"
-              echo ""
+              echo "👉 Check the list of files above."
+              echo "👉 GitHub annotations show exact lines."
               exit 1
             )
 
-      # 5️⃣ dbt debug — valida estrutura do projeto
-      - name: dbt debug (project validation)
+      # 6️⃣ dbt debug (estrutura apenas, sem conexão real)
+      - name: dbt debug (structure only)
         run: |
-          echo "🧪 Running dbt debug"
-          echo "👉 Validating dbt_project.yml and dbt profile structure"
-          echo ""
-
+          echo "🧪 Running dbt debug (no real connection)"
           dbt debug \
-            --profiles-dir ~/.dbt \
+            --profiles-dir /tmp/dbt_profiles \
             || (
               echo ""
               echo "❌ dbt debug FAILED"
-              echo "👉 Check dbt_project.yml or profiles.yml configuration."
-              echo "👉 dbt project must be valid before merge."
+              echo "👉 Check dbt_project.yml structure."
               exit 1
             )
