@@ -48,27 +48,26 @@ jobs:
                 threads: 1
           EOF
 
-      # 5️⃣ SQLFluff lint — agora FUNCIONA e lista os modelos
+      # 5️⃣ SQLFluff lint (dbt + Databricks)
       - name: SQLFluff lint (dbt + Databricks)
-        env:
-          GITHUB_WORKSPACE: ${{ github.workspace }}
+        working-directory: .
         run: |
-          echo "🔍 Running SQLFluff lint"
+          echo "🔍 Running SQLFluff lint from repo root"
           echo "📄 Config: ci/sqlfluff/.sqlfluff"
           echo "📂 Models path: models/"
-          echo "📁 dbt project dir: $GITHUB_WORKSPACE"
+          echo "📁 Current dir: $(pwd)"
           echo ""
 
           sqlfluff lint models \
             --config ci/sqlfluff/.sqlfluff \
+            --templater-dbt-project-dir . \
             --verbose \
             --format github-annotation \
             || (
               echo ""
               echo "❌ SQLFluff validation FAILED"
               echo "👉 One or more dbt models failed linting."
-              echo "👉 Check the list of files above."
-              echo "👉 GitHub annotations show exact lines."
+              echo "👉 See logs above for file names and line numbers."
               exit 1
             )
 

@@ -3,8 +3,7 @@ dialect = databricks
 templater = dbt
 
 [sqlfluff:templater:dbt]
-# O projeto dbt está na raiz do repositório
-project_dir = $GITHUB_WORKSPACE
+project_dir = .
 profiles_dir = /tmp/dbt_profiles
 
 [sqlfluff:rules]
