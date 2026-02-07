@@ -21,7 +21,7 @@ jobs:
         with:
           python-version: "3.11"
 
-      # 3️⃣ Instala dependências
+      # 3️⃣ Instalar dependências
       - name: Install Python dependencies
         run: |
           echo "🐍 Installing dbt and SQLFluff"
@@ -29,8 +29,8 @@ jobs:
           pip install dbt-core dbt-databricks
           pip install sqlfluff sqlfluff-templater-dbt
 
-      # 4️⃣ Criar profiles.yml FAKE (apenas para CI)
-      - name: Create fake dbt profiles for CI
+      # 4️⃣ Criar profiles.yml fake (somente para CI)
+      - name: Create fake dbt profiles
         run: |
           echo "🧪 Creating fake dbt profiles for CI"
           mkdir -p /tmp/dbt_profiles
@@ -48,12 +48,15 @@ jobs:
                 threads: 1
           EOF
 
-      # 5️⃣ SQLFluff lint — agora lista os modelos corretamente
+      # 5️⃣ SQLFluff lint — agora FUNCIONA e lista os modelos
       - name: SQLFluff lint (dbt + Databricks)
+        env:
+          GITHUB_WORKSPACE: ${{ github.workspace }}
         run: |
           echo "🔍 Running SQLFluff lint"
           echo "📄 Config: ci/sqlfluff/.sqlfluff"
           echo "📂 Models path: models/"
+          echo "📁 dbt project dir: $GITHUB_WORKSPACE"
           echo ""
 
           sqlfluff lint models \
@@ -69,10 +72,10 @@ jobs:
               exit 1
             )
 
-      # 6️⃣ dbt debug (estrutura apenas, sem conexão real)
-      - name: dbt debug (structure only)
+      # 6️⃣ dbt debug — valida estrutura (sem conexão real)
+      - name: dbt debug (structure validation)
         run: |
-          echo "🧪 Running dbt debug (no real connection)"
+          echo "🧪 Running dbt debug"
           dbt debug \
             --profiles-dir /tmp/dbt_profiles \
             || (
