@@ -1,4 +1,4 @@
-name: CD
+name: cd
 
 on:
   push:
@@ -6,10 +6,79 @@ on:
       - main
 
 jobs:
-  cd:
+  deploy_cd:
+    name: deploy-poseidon-cd
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy notice
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
         run: |
-          echo "CD educativo: deploy manual no Databricks Community Edition"
+          pip install dbt-core dbt-databricks
+
+      - name: Create dbt profiles.yml (CD)
+        run: |
+          mkdir -p ~/.dbt
+          cat <<EOF > ~/.dbt/profiles.yml
+          dbt_poseidon:
+            target: cd
+            outputs:
+              cd:
+                type: databricks
+                host: ${{ secrets.DATABRICKS_HOST }}
+                http_path: ${{ secrets.DATABRICKS_HTTP_PATH }}
+                token: ${{ secrets.DATABRICKS_TOKEN }}
+                catalog: poseidon_cd
+                schema: marts
+                threads: 1
+          EOF
+
+      - name: Run dbt build (poseidon_cd)
+        run: |
+          dbt build --profiles-dir ~/.dbt
+
+  deploy_prd:
+    name: deploy-poseidon-prd
+    runs-on: ubuntu-latest
+    needs: deploy_cd
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install dbt-core dbt-databricks
+
+      - name: Create dbt profiles.yml (PRD)
+        run: |
+          mkdir -p ~/.dbt
+          cat <<EOF > ~/.dbt/profiles.yml
+          dbt_poseidon:
+            target: prd
+            outputs:
+              prd:
+                type: databricks
+                host: ${{ secrets.DATABRICKS_HOST }}
+                http_path: ${{ secrets.DATABRICKS_HTTP_PATH }}
+                token: ${{ secrets.DATABRICKS_TOKEN }}
+                catalog: poseidon_prd
+                schema: marts
+                threads: 1
+          EOF
+
+      - name: Run dbt build (poseidon_prd)
+        run: |
+          dbt build --profiles-dir ~/.dbt
