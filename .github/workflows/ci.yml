@@ -23,31 +23,40 @@ jobs:
         run: |
           pip install dbt-core dbt-databricks sqlfluff yamllint
 
+      # -------------------------------------------------
+      # Create dbt profile for CI (uses poseidon_dev)
+      # -------------------------------------------------
       - name: Create dbt profiles.yml (CI)
         run: |
           mkdir -p ~/.dbt
           cat <<EOF > ~/.dbt/profiles.yml
           dbt_poseidon:
-            target: ci
+            target: dev
             outputs:
-              ci:
+              dev:
                 type: databricks
                 host: ${{ secrets.DATABRICKS_HOST }}
                 http_path: ${{ secrets.DATABRICKS_HTTP_PATH }}
                 token: ${{ secrets.DATABRICKS_TOKEN }}
-                catalog: poseidon_ci
+                catalog: poseidon_dev
                 schema: marts
                 threads: 1
           EOF
 
+      # -------------------------------------------------
+      # Lint SQL
+      # -------------------------------------------------
       - name: Run SQLFluff
         run: |
           sqlfluff lint models --dialect databricks
 
+      # -------------------------------------------------
+      # Validate dbt project (no data creation)
+      # -------------------------------------------------
       - name: Run dbt compile
         run: |
           dbt compile --profiles-dir ~/.dbt
 
-      - name: Run dbt tests
+      - name: Run dbt tests (poseidon_dev)
         run: |
           dbt test --profiles-dir ~/.dbt
