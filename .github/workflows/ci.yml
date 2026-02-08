@@ -1,4 +1,4 @@
-name: CI
+name: ci
 
 on:
   pull_request:
@@ -7,6 +7,7 @@ on:
 
 jobs:
   process:
+    name: process
     runs-on: ubuntu-latest
 
     steps:
@@ -22,11 +23,27 @@ jobs:
         run: |
           pip install dbt-core dbt-databricks sqlfluff yamllint
 
+      - name: Create dbt profiles.yml
+        run: |
+          mkdir -p ~/.dbt
+          cat <<EOF > ~/.dbt/profiles.yml
+          dbt_poseidon:
+            target: ci
+            outputs:
+              ci:
+                type: databricks
+                host: ${{ secrets.DATABRICKS_HOST }}
+                http_path: ${{ secrets.DATABRICKS_HTTP_PATH }}
+                token: ${{ secrets.DATABRICKS_TOKEN }}
+                catalog: poseidon_ci
+                schema: staging
+                threads: 1
+          EOF
+
       - name: Run SQLFluff
         run: |
           sqlfluff lint models --dialect databricks
 
       - name: Run dbt compile
         run: |
-          dbt compile
-
+          dbt compile --profiles-dir ~/.dbt
