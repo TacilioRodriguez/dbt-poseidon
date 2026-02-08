@@ -7,56 +7,26 @@ on:
 
 jobs:
   ci:
-    name: dbt
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install SQLFluff
+      - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install sqlfluff
+          pip install dbt-core dbt-databricks sqlfluff yamllint
 
-      - name: Check for SQL models
-        id: check_sql
+      - name: Run SQLFluff
         run: |
-          echo "🔍 Checking for SQL files in models/"
-          SQL_COUNT=$(find models -type f -name "*.sql" | wc -l | tr -d ' ')
-          echo "Found $SQL_COUNT SQL files"
+          sqlfluff lint models --dialect databricks
 
-          if [ "$SQL_COUNT" -eq 0 ]; then
-            echo "has_sql=false" >> $GITHUB_OUTPUT
-          else
-            echo "has_sql=true" >> $GITHUB_OUTPUT
-          fi
-
-      - name: SQLFluff lint (Databricks SQL)
-        if: steps.check_sql.outputs.has_sql == 'true'
+      - name: Run dbt compile
         run: |
-          echo "🔍 Running SQLFluff lint"
-          echo "📂 Path: models/"
-          echo ""
+          dbt compile
 
-          sqlfluff lint models \
-            --config ci/sqlfluff/.sqlfluff \
-            --verbose \
-            --format github-annotation \
-            || (
-              echo ""
-              echo "❌ SQLFluff FAILED"
-              echo "👉 Fix SQL linting issues before merging."
-              exit 1
-            )
-
-      - name: Skip SQLFluff (no SQL files)
-        if: steps.check_sql.outputs.has_sql == 'false'
-        run: |
-          echo "ℹ️ No SQL files found in models/"
-          echo "👉 SQLFluff lint skipped"

@@ -1,0 +1,15 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  cd:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy notice
+        run: |
+          echo "CD educativo: deploy manual no Databricks Community Edition"
