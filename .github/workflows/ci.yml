@@ -1,32 +1,62 @@
-name: CI - dbt
+name: ci
 
 on:
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
-  dbt-ci:
+  process:
+    name: process
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
-          pip install dbt-core dbt-databricks
-          pip install sqlfluff sqlfluff-templater-dbt
+          pip install dbt-core dbt-databricks sqlfluff yamllint
 
-      - name: SQLFluff lint
+      # -------------------------------------------------
+      # Create dbt profile for CI (uses poseidon_dev)
+      # -------------------------------------------------
+      - name: Create dbt profiles.yml (CI)
         run: |
-          sqlfluff lint models
+          mkdir -p ~/.dbt
+          cat <<EOF > ~/.dbt/profiles.yml
+          dbt_poseidon:
+            target: dev
+            outputs:
+              dev:
+                type: databricks
+                host: ${{ secrets.DATABRICKS_HOST }}
+                http_path: ${{ secrets.DATABRICKS_HTTP_PATH }}
+                token: ${{ secrets.DATABRICKS_TOKEN }}
+                catalog: poseidon_dev
+                schema: marts
+                threads: 1
+          EOF
 
-      - name: dbt debug
+      # -------------------------------------------------
+      # Lint SQL
+      # -------------------------------------------------
+      - name: Run SQLFluff
         run: |
-          dbt debug --profiles-dir ~/.dbt
+          sqlfluff lint models --dialect databricks
+
+      # -------------------------------------------------
+      # Validate dbt project (no data creation)
+      # -------------------------------------------------
+      - name: Run dbt compile
+        run: |
+          dbt compile --profiles-dir ~/.dbt
+
+      - name: Run dbt tests (poseidon_dev)
+        run: |
+          dbt test --profiles-dir ~/.dbt

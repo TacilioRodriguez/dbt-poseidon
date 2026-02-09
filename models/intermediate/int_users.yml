@@ -1,0 +1,10 @@
+version: 2
+
+models:
+  - name: int_users
+    description: "Modelo intermediário com regras de negócio aplicadas aos usuários"
+    columns:
+      - name: user_id
+        description: "Identificador único do usuário"
+        tests:
+          - not_null
