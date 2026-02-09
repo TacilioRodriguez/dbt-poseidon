@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: stg_customers
-    description: "Tabela staging com dados brutos de clientes provenientes do arquivo customers.csv"
+    description: "Tabela staging com dados brutos de clientes provenientes do arquivo customers.csv que esta no seed"
     columns:
       - name: customer_id
         description: "Identificador técnico do cliente"
