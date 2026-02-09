@@ -1,0 +1,27 @@
+version: 2
+
+models:
+  - name: stg_customers
+    description: "Tabela staging com dados brutos de clientes provenientes do arquivo customers.csv"
+    columns:
+      - name: customer_id
+        description: "Identificador técnico do cliente"
+        tests:
+          - not_null
+          - unique
+
+      - name: customer_unique_id
+        description: "Identificador único de cliente ao longo do tempo"
+        tests:
+          - not_null
+
+      - name: customer_zip_code_prefix
+        description: "Prefixo do CEP do cliente"
+
+      - name: customer_city
+        description: "Cidade do cliente normalizada em lowercase"
+
+      - name: customer_state
+        description: "Estado do cliente (UF) normalizado em uppercase"
+        tests:
+          - not_null
